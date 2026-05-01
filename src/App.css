@@ -1,0 +1,855 @@
+/* ─── StartupLabs – Landing Design System ─── */
+
+/* ── Reset & Root ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* ── Core backgrounds — from Landing bg: #080c14 ── */
+  --bg-app:         #080c14;   /* page shell — matches Landing background */
+  --bg-card:        rgba(255, 255, 255, 0.035);  /* feature card surface */
+  --bg-card-hover:  rgba(255, 255, 255, 0.055);
+  --bg-surface:     rgba(255, 255, 255, 0.04);   /* nav, pills, inputs */
+  --bg-surface-alt: rgba(255, 255, 255, 0.025);  /* stats strip, muted panels */
+
+  /* ── Brand accents — pulled directly from Landing roles/features ── */
+  --accent-indigo:      #6366f1;   /* primary: student, milestone */
+  --accent-indigo-dim:  rgba(99, 102, 241, 0.12);
+  --accent-indigo-ring: rgba(99, 102, 241, 0.25);
+  --accent-indigo-glow: rgba(99, 102, 241, 0.35);
+
+  --accent-violet:      #8b5cf6;   /* secondary indigo pair */
+  --accent-violet-dim:  rgba(139, 92, 246, 0.12);
+
+  --accent-emerald:     #10b981;   /* mentor, growth */
+  --accent-emerald-dim: rgba(16, 185, 129, 0.12);
+  --accent-emerald-glow:rgba(16, 185, 129, 0.28);
+
+  --accent-sky:         #0ea5e9;   /* team/connect feature */
+  --accent-amber:       #f59e0b;   /* messaging feature */
+  --accent-pink:        #ec4899;   /* document feature */
+
+  /* ── Text — from Landing prose colours ── */
+  --text-primary:   #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.60);
+  --text-muted:     rgba(255, 255, 255, 0.42);
+  --text-faint:     rgba(255, 255, 255, 0.28);
+
+  /* ── Borders ── */
+  --border:         rgba(255, 255, 255, 0.08);
+  --border-subtle:  rgba(255, 255, 255, 0.06);
+  --border-hover:   rgba(255, 255, 255, 0.14);
+
+  /* ── Radius scale — matches Landing rounded-2xl / rounded-3xl usage ── */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.40);
+  --shadow-glow-indigo:  0 0 40px -8px rgba(99, 102, 241, 0.35),
+                         0 20px 60px -20px rgba(99, 102, 241, 0.35);
+  --shadow-glow-emerald: 0 0 40px -8px rgba(16, 185, 129, 0.28),
+                         0 20px 60px -20px rgba(16, 185, 129, 0.28);
+
+  /* ── Typography — Landing font stack ── */
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  /* ── Transitions ── */
+  --transition:        all 0.25s ease;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Base ── */
+html,
+body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* Firefox scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+#root {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 0;
+  text-align: left;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  /* FIX: prevent stat-row / horizontal content from bleeding on narrow viewports */
+  overflow-x: hidden;
+}
+
+/* ── Grain overlay — identical to Landing ── */
+.grain::before {
+  content: '';
+  position: fixed;
+  inset: -200%;
+  width: 400%;
+  height: 400%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  /* FIX: was referencing undefined 'grain-move' — corrected to 'grain' */
+  animation: grain 0.5s steps(1) infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+}
+
+/* ─────────────────────────────────────────
+   TOP BAR — mirrors Landing sticky nav
+───────────────────────────────────────── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(8, 12, 20, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+/* .logo-icon — matches Landing: h-8 w-8 rounded-lg bg-indigo-500 */
+.logo-icon {
+  width: 30px;
+  height: 30px;
+  background: var(--accent-indigo);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* .logo-name — matches Landing: font-display text-lg font-bold */
+.logo-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.top-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.icon-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+/* ─────────────────────────────────────────
+   VPN / CONNECTION RING
+   Glow now uses indigo to match Landing
+───────────────────────────────────────── */
+.vpn-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 24px 32px;
+}
+
+.vpn-ring-outer {
+  width: 200px;
+  height: 200px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--accent-indigo-ring);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 0 80px rgba(99, 102, 241, 0.10),
+              0 0 160px rgba(99, 102, 241, 0.05);
+  background: radial-gradient(circle at center, var(--bg-surface) 30%, transparent 75%);
+}
+
+.vpn-ring-mid {
+  width: 152px;
+  height: 152px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--accent-indigo-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+}
+
+.vpn-ring-inner {
+  width: 108px;
+  height: 108px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--accent-indigo-ring);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+}
+
+.vpn-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--accent-indigo-ring);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04px;
+  cursor: pointer;
+  transition: var(--transition);
+  /* FIX: button label/icon was not centred — flex layout added */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vpn-btn:hover {
+  background: var(--accent-indigo-dim);
+  border-color: var(--accent-indigo);
+  box-shadow: var(--shadow-glow-indigo);
+  transform: scale(1.04);
+}
+
+.vpn-btn:active {
+  transform: scale(0.97);
+}
+
+.vpn-btn.connected {
+  border-color: var(--accent-indigo);
+  color: var(--accent-indigo);
+}
+
+/* Status row — from Landing "indigo badge" pattern */
+.vpn-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+  color: var(--accent-indigo);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vpn-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--accent-indigo);
+  box-shadow: 0 0 8px var(--accent-indigo);
+}
+
+/* ─────────────────────────────────────────
+   DASHBOARD CARD
+   Uses Landing's card surface + border
+───────────────────────────────────────── */
+.dashboard-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  flex: 1;
+  padding: 22px 20px 0;
+  color: var(--text-primary);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.panel-link {
+  font-size: 13px;
+  color: var(--accent-indigo);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.panel-link:hover {
+  color: var(--accent-violet);
+}
+
+/* ─────────────────────────────────────────
+   STAT CHIPS — Landing feature-card style
+───────────────────────────────────────── */
+.stat-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.stat-chip {
+  flex: 1;
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-subtle);
+  min-width: 0;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.stat-chip:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-card);
+}
+
+/* Highlighted chip — Landing indigo glow treatment */
+.stat-chip.highlight {
+  background: var(--accent-indigo-dim);
+  border-color: var(--accent-indigo-ring);
+}
+
+.stat-chip-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--accent-indigo-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  color: var(--accent-indigo);
+}
+
+.stat-chip-num {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.stat-chip-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─────────────────────────────────────────
+   TRACKER ACTIVITY PANEL
+───────────────────────────────────────── */
+.activity-panel {
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 20px 20px 0;
+  margin-top: 4px;
+  color: var(--text-primary);
+}
+
+.activity-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+}
+
+.activity-date-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* ─────────────────────────────────────────
+   TRACKER ITEM ROW
+   Uses Landing feature-card icon pattern
+───────────────────────────────────────── */
+.tracker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tracker-item:last-child {
+  border-bottom: none;
+}
+
+.tracker-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Feature-type colours — pulled from Landing features array */
+.tracker-icon-wrap.data     { background: rgba(99,  102, 241, 0.14); color: var(--accent-indigo); }
+.tracker-icon-wrap.location { background: rgba(139,  92, 246, 0.14); color: var(--accent-violet); }
+.tracker-icon-wrap.hijack   { background: rgba(245, 158,  11, 0.14); color: var(--accent-amber); }
+.tracker-icon-wrap.email    { background: rgba(236,  72, 153, 0.14); color: var(--accent-pink); }
+
+.tracker-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tracker-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tracker-domain {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.tracker-date {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* Blocked badge — Landing indigo badge pattern */
+.blocked-badge {
+  background: rgba(99, 102, 241, 0.14);
+  color: var(--accent-indigo);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────
+   FULL DASHBOARD VIEW
+───────────────────────────────────────── */
+.dashboard-view {
+  background: var(--bg-app);
+  min-height: 100vh;
+  color: var(--text-primary);
+}
+
+.dashboard-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 10px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: var(--transition);
+}
+
+.back-btn:hover {
+  color: var(--text-primary);
+}
+
+.dashboard-nav-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.date-filter-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.date-filter-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.total-count {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--text-primary);
+  padding: 4px 20px 0;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.total-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 20px 16px;
+}
+
+/* ─────────────────────────────────────────
+   CHART SECTION
+───────────────────────────────────────── */
+.chart-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px 20px;
+}
+
+.tracker-breakdown {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.breakdown-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.breakdown-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.breakdown-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.breakdown-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-left: 16px;
+}
+
+.breakdown-bar-track {
+  height: 4px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-left: 16px;
+}
+
+.breakdown-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 600ms ease;
+}
+
+/* Bar fill colours — Landing accent palette */
+.fill-data     { background: var(--accent-indigo); }
+.fill-location { background: var(--accent-violet); }
+.fill-hijack   { background: var(--accent-amber); }
+.fill-email    { background: var(--accent-pink); }
+
+.donut-wrap {
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.donut-wrap canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* ─────────────────────────────────────────
+   DETAIL MODAL
+───────────────────────────────────────── */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+
+.detail-sheet {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  padding: 20px 20px 36px;
+  width: 100%;
+  max-width: 420px;
+  color: var(--text-primary);
+  animation: slide-up 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sheet-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.close-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.detail-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+  gap: 10px;
+}
+
+.detail-hero-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--accent-indigo-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-indigo);
+}
+
+.detail-domain-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--accent-indigo);
+  letter-spacing: -0.02em;
+}
+
+.detail-domain-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: -6px;
+}
+
+.detail-stats-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.detail-stat { text-align: center; }
+
+.detail-stat-num {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+
+.detail-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.detail-info-section { margin-top: 4px; }
+
+.detail-section-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.detail-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.detail-description a {
+  color: var(--accent-indigo);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.detail-description a:hover {
+  color: var(--accent-violet);
+}
+
+/* FIX: was using raw font string — now uses CSS variable for consistency */
+.detail-hostname {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  font-family: var(--font-mono);
+}
+
+/* ─────────────────────────────────────────
+   CARD GLOW — identical to Landing .card-glow
+───────────────────────────────────────── */
+.card-glow:hover {
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.40),
+              0 20px 60px -10px rgba(99, 102, 241, 0.15);
+}
+
+/* ─────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────── */
+::-webkit-scrollbar            { width: 4px; }
+::-webkit-scrollbar-track      { background: transparent; }
+::-webkit-scrollbar-thumb      { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover{ background: var(--border-hover); }
+
+/* ─────────────────────────────────────────
+   KEYFRAMES
+───────────────────────────────────────── */
+
+/* Grain overlay — matches Landing */
+@keyframes grain {
+  0%,100% { transform: translate(0, 0); }
+  10%     { transform: translate(-2%, -3%); }
+  30%     { transform: translate(3%, 2%); }
+  50%     { transform: translate(-1%, 4%); }
+  70%     { transform: translate(4%, -1%); }
+  90%     { transform: translate(-3%, 3%); }
+}
+
+/* Bottom sheet entrance */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─────────────────────────────────────────
+   UTILITIES
+───────────────────────────────────────── */
+.read-the-docs {
+  color: var(--text-faint);
+  font-size: 12px;
+  text-align: center;
+  padding: 16px;
+}
