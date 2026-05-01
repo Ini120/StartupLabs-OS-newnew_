@@ -137,13 +137,15 @@ export default function MentorDashboard() {
   });
 
   // ── booked meetings (startup → mentor) ──
+  // Select student_id directly so we can show the student's name even when
+  // the meeting record doesn't have a linked startup yet.
   const { data: bookedMeetings = [], isLoading: mLoading, refetch: refetchMeetings } = useQuery({
     queryKey: ['mentor-booked-meetings', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('meetings')                         // adjust table name if different
-        .select('*')
+        .from('meetings')
+        .select('*, startup:Startups(id, name, student_id, stage)')
         .eq('mentor_id', user!.id)
         .order('scheduled_at', { ascending: true });
       if (error) throw error;
@@ -298,10 +300,10 @@ export default function MentorDashboard() {
                   </p>
                   {upcomingMeetings.map(meeting => {
                     const { label, sub, isUrgent } = formatMeetingDate(meeting.scheduled_at);
-                    const startup = startups.find(s => s.id === meeting.startup_id);
-                    const studentProfile = startup
-                      ? profileFor(startup.student_id)
-                      : undefined;
+                    // Use the embedded startup join first; fall back to the local startups array
+                    const startup = (meeting as any).startup ?? startups.find(s => s.id === meeting.startup_id);
+                    const studentId = startup?.student_id;
+                    const studentProfile = studentId ? profileFor(studentId) : undefined;
 
                     return (
                       <div
@@ -407,8 +409,9 @@ export default function MentorDashboard() {
                     Past
                   </p>
                   {pastMeetings.slice(0, 3).map(meeting => {
-                    const startup = startups.find(s => s.id === meeting.startup_id);
-                    const studentProfile = startup ? profileFor(startup.student_id) : undefined;
+                    const startup = (meeting as any).startup ?? startups.find(s => s.id === meeting.startup_id);
+                    const studentId = startup?.student_id;
+                    const studentProfile = studentId ? profileFor(studentId) : undefined;
                     return (
                       <div
                         key={meeting.id}
@@ -613,9 +616,10 @@ export default function MentorDashboard() {
             const pct = allMs.length ? Math.round((done / allMs.length) * 100) : 0;
 
             // Any upcoming meeting for this student's startups
-            const studentMeetings = upcomingMeetings.filter(m =>
-              studentStartups.some(s => s.id === m.startup_id)
-            );
+            const studentMeetings = upcomingMeetings.filter(m => {
+              const mStartup = (m as any).startup ?? startups.find(s => s.id === m.startup_id);
+              return studentStartups.some(s => s.id === mStartup?.id);
+            });
 
             return (
               <div
@@ -667,7 +671,10 @@ export default function MentorDashboard() {
                         {studentStartups.map(s => {
                           const pctS = progressFor(s.id);
                           const ms = milestonesFor(s.id);
-                          const nextMeeting = upcomingMeetings.find(m => m.startup_id === s.id);
+                          const nextMeeting = upcomingMeetings.find(m => {
+                              const mStartup = (m as any).startup ?? startups.find(s => s.id === m.startup_id);
+                              return mStartup?.id === s.id;
+                            });
                           return (
                             <div key={s.id} className="rounded-lg bg-muted/40 p-3 space-y-2">
                               <div className="flex items-center justify-between gap-2">

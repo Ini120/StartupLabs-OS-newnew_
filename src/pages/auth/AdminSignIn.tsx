@@ -14,7 +14,12 @@ export default function AdminSignIn() {
           </p>
         </div>
         <div className="flex justify-center">
-          <SignIn routing="hash" signUpUrl="/admin-sign-up" afterSignInUrl="/dashboard" />
+          <SignIn
+            routing="hash"
+            signUpUrl="/admin-sign-up"
+            afterSignInUrl="/dashboard"
+            forceRedirectUrl="/dashboard"
+          />
         </div>
       </div>
     </AuthLayout>

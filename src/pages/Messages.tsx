@@ -247,7 +247,7 @@ export default function Messages() {
                             {c.last_message_preview}
                           </p>
                           {c.unread_count > 0 && (
-                            <Badge className="h-4.5 min-w-4.5 px-1.5 rounded-full text-[10px] bg-gradient-aurora text-white shrink-0 shadow-glow">
+                            <Badge className="h-5 min-w-5 px-1.5 rounded-full text-[10px] bg-gradient-aurora text-white shrink-0 shadow-glow">
                               {c.unread_count}
                             </Badge>
                           )}
@@ -333,10 +333,19 @@ function ChatPanel({
   const [sending, setSending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevMsgCount = useRef(0);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    const el = scrollRef.current;
+    if (!el) return;
+    // Instant scroll on first load; smooth only when new messages arrive
+    const behavior = prevMsgCount.current === 0 ? 'auto' : 'smooth';
+    el.scrollTo({ top: el.scrollHeight, behavior });
+    prevMsgCount.current = messages.length;
   }, [messages.length, otherTyping]);
+
+  // Track which message IDs have already been animated so msg-new only fires once
+  const animatedIds = useRef<Set<string>>(new Set());
 
   const lastMineId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -390,7 +399,7 @@ function ChatPanel({
               {initialsOf(otherName)}
             </AvatarFallback>
           </Avatar>
-          <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+          <span className="online-dot absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -456,7 +465,9 @@ function ChatPanel({
               m.id === lastMineId &&
               otherLastReadAt &&
               new Date(otherLastReadAt) >= new Date(m.created_at);
-            const isNewest = idx === messages.length - 1;
+            // Only animate a message the very first time it appears — never on re-renders
+            const isNew = !animatedIds.current.has(m.id);
+            if (isNew) animatedIds.current.add(m.id);
 
             // Date separator
             const prevDate = idx > 0 ? new Date(messages[idx - 1].created_at).toDateString() : null;
@@ -478,7 +489,7 @@ function ChatPanel({
                     <div className="flex-1 h-px bg-border/50" />
                   </div>
                 )}
-                <div className={cn("flex", mine ? "justify-end" : "justify-start", isNewest && "msg-new")}>
+                <div className={cn("flex", mine ? "justify-end" : "justify-start", isNew && "msg-new")}>
                   <div className={cn("max-w-[75%] flex flex-col", mine ? "items-end" : "items-start")}>
                     <div
                       className={cn(
@@ -517,7 +528,7 @@ function ChatPanel({
 
         {/* Typing indicator */}
         {otherTyping && (
-          <div className="flex items-center gap-2 justify-start msg-enter">
+          <div className="flex items-center gap-2 justify-start msg-new">
             <Avatar className="h-6 w-6 shrink-0">
               {otherAvatar && <AvatarImage src={otherAvatar} />}
               <AvatarFallback className="bg-gradient-aurora text-white text-[9px] font-semibold">

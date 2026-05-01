@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Rocket, Target, FileText, TrendingUp, Clock, CheckCircle2, Circle,
   Plus, ArrowRight, Calendar, Zap, Video, MapPin, User, Flame, Star,
@@ -14,8 +14,7 @@ import { useMyStartups } from '@/hooks/use-startups';
 import { useMilestonesByStartups } from '@/hooks/use-milestones';
 import { StageBadge } from '@/components/shared/Stagebadge';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -298,26 +297,68 @@ function BookMeetingModal({
 /* ─── Main Dashboard ──────────────────────────────────────── */
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: startups = [], isLoading: startupsLoading } = useMyStartups();
   const startupIds = useMemo(() => startups.map(s => s.id), [startups]);
   const { data: milestones = [], isLoading: milestonesLoading } = useMilestonesByStartups(startupIds);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
   const [bookingOpen, setBookingOpen] = useState(false);
 
-  // Fetch mentor assignment for this student
+  // ── Fetch approved mentor assignment for this student ──────────────────────
+  // Two-step fetch: first get the approved assignment, then fetch the mentor's
+  // profile. This avoids relying on a specific FK constraint name in the join.
   const { data: assignment } = useQuery({
     queryKey: ['student-mentor-assignment', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data } = await supabase
         .from('mentor_assignments')
-        .select('mentor_id, mentor:profiles!mentor_assignments_mentor_id_fkey(full_name)')
+        .select('mentor_id, status')
         .eq('student_id', user!.id)
         .eq('status', 'approved')
         .maybeSingle();
-      return data;
+      return data ?? null;
     },
   });
+
+  const mentorId = assignment?.mentor_id ?? null;
+
+  // Fetch mentor profile separately once we have the mentor_id
+  const { data: mentorProfile } = useQuery({
+    queryKey: ['mentor-profile', mentorId],
+    enabled: !!mentorId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url, email, headline')
+        .eq('user_id', mentorId!)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
+  const mentorName = mentorProfile?.full_name ?? 'Your Mentor';
+
+  // ── Realtime: re-fetch assignment the moment admin approves/changes it ─────
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`student-assignment-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mentor_assignments',
+          filter: `student_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['student-mentor-assignment', user.id] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, queryClient]);
 
   // Fetch this student's booked meetings
   const { data: myMeetings = [] } = useQuery({
@@ -333,8 +374,7 @@ export default function StudentDashboard() {
     },
   });
 
-  const mentorId = assignment?.mentor_id ?? null;
-  const mentorName = (assignment?.mentor as any)?.full_name ?? 'Your Mentor';
+  // ── Derived ───────────────────────────────────────────────────────────────
   const upcomingMeetings = myMeetings.filter(m => new Date(m.scheduled_at) >= new Date());
 
   const completedMilestones = milestones.filter(m => m.status === 'completed').length;

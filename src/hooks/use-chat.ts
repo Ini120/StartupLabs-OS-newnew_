@@ -30,9 +30,9 @@ export function useConversations() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showSpinner = false) => {
     if (!user) return;
-    setLoading(true);
+    if (showSpinner) setLoading(true);
 
     const { data: myParts } = await supabase
       .from('conversation_participants')
@@ -100,11 +100,11 @@ export function useConversations() {
     );
 
     setConversations(summaries);
-    setLoading(false);
+    if (showSpinner) setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    load();
+    load(true);
   }, [load]);
 
   // Realtime: refresh when any message lands in one of my conversations
@@ -112,8 +112,8 @@ export function useConversations() {
     if (!user) return;
     const channel = supabase
       .channel('conversations-list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_participants' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => load(false))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_participants' }, () => load(false))
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -132,9 +132,9 @@ export function useConversation(conversationId: string | null) {
   const [otherLastReadAt, setOtherLastReadAt] = useState<string | null>(null);
   const typingTimer = useRef<number | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showSpinner = false) => {
     if (!conversationId || !user) return;
-    setLoading(true);
+    if (showSpinner) setLoading(true);
 
     const [{ data: msgs }, { data: parts }] = await Promise.all([
       supabase
@@ -151,14 +151,14 @@ export function useConversation(conversationId: string | null) {
     setMessages((msgs ?? []) as ChatMessage[]);
     const other = (parts ?? []).find((p) => p.user_id !== user.id);
     setOtherLastReadAt(other?.last_read_at ?? null);
-    setLoading(false);
+    if (showSpinner) setLoading(false);
 
     // Mark as read
     await invoke('chat-send', { action: 'mark_read', conversation_id: conversationId });
   }, [conversationId, user, invoke]);
 
   useEffect(() => {
-    load();
+    load(true);
   }, [load]);
 
   // Realtime subscriptions
@@ -172,7 +172,15 @@ export function useConversation(conversationId: string | null) {
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
         async (payload) => {
           const newMsg = payload.new as ChatMessage;
-          setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
+          setMessages((prev) => {
+            // If already present (real id), skip
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            // If this is our own message arriving for real, drop the optimistic placeholder
+            const withoutOptimistic = newMsg.sender_id === user.id
+              ? prev.filter((m) => !m.id.startsWith('optimistic-'))
+              : prev;
+            return [...withoutOptimistic, newMsg];
+          });
           if (newMsg.sender_id !== user.id) {
             await invoke('chat-send', { action: 'mark_read', conversation_id: conversationId });
           }
@@ -216,17 +224,39 @@ export function useConversation(conversationId: string | null) {
 
   const sendMessage = useCallback(
     async (content: string, attachment?: { url: string; name: string; type: string }) => {
-      if (!conversationId) return;
-      await invoke('chat-send', {
-        action: 'send',
+      if (!conversationId || !user) return;
+
+      // Optimistically append so the message appears instantly
+      const optimisticId = `optimistic-${Date.now()}`;
+      const optimistic: ChatMessage = {
+        id: optimisticId,
         conversation_id: conversationId,
+        sender_id: user.id,
         content,
-        attachment_url: attachment?.url,
-        attachment_name: attachment?.name,
-        attachment_type: attachment?.type,
-      });
+        attachment_url: attachment?.url ?? null,
+        attachment_name: attachment?.name ?? null,
+        attachment_type: attachment?.type ?? null,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimistic]);
+
+      try {
+        await invoke('chat-send', {
+          action: 'send',
+          conversation_id: conversationId,
+          content,
+          attachment_url: attachment?.url,
+          attachment_name: attachment?.name,
+          attachment_type: attachment?.type,
+        });
+      } catch (e) {
+        // Roll back the optimistic message on failure
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+        throw e;
+      }
+      // The real message will arrive via the realtime INSERT and dedupe via the id check
     },
-    [conversationId, invoke],
+    [conversationId, user, invoke],
   );
 
   const sendTyping = useCallback(() => {

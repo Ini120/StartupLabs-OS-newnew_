@@ -72,7 +72,7 @@ export default function SelectRole() {
     try {
       const res = await invoke('assign-role', { role });
       if (res.error) throw res.error;
-      navigate('/dashboard');
+      navigate('/complete-profile');
     } catch (err: any) {
       toast({ title: 'Could not set role', description: err.message, variant: 'destructive' });
       setPending(null);
