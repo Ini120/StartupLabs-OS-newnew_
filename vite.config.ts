@@ -32,57 +32,16 @@ export default defineConfig(({ mode }) => ({
     minify: "esbuild",
     chunkSizeWarningLimit: 800,
 
-    // IMPORTANT FIX for Netlify + mixed modules
     commonjsOptions: {
       transformMixedEsModules: true,
     },
 
     rollupOptions: {
       output: {
+        // SAFE FOR NETLIFY (prevents React/Clerk crashes)
         manualChunks(id) {
-          if (
-            ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"].some((p) =>
-              id.includes(`node_modules/${p}`)
-            )
-          ) {
-            return "vendor-react";
-          }
-
-          if (
-            id.includes("node_modules/react-router-dom") ||
-            id.includes("node_modules/@remix-run")
-          ) {
-            return "vendor-router";
-          }
-
-          if (id.includes("node_modules/@clerk")) {
-            return "vendor-clerk";
-          }
-
-          if (
-            id.includes("node_modules/@tanstack") ||
-            id.includes("node_modules/@supabase")
-          ) {
-            return "vendor-data";
-          }
-
-          if (id.includes("node_modules/@radix-ui")) {
-            return "vendor-radix";
-          }
-
-          if (
-            id.includes("node_modules/recharts") ||
-            id.includes("node_modules/d3")
-          ) {
-            return "vendor-charts";
-          }
-
-          if (id.includes("node_modules/date-fns")) {
-            return "vendor-dates";
-          }
-
-          if (id.includes("node_modules/lucide-react")) {
-            return "vendor-icons";
+          if (id.includes("node_modules")) {
+            return "vendor";
           }
         },
 
@@ -101,8 +60,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      react: path.resolve("./node_modules/react"),
-      "react-dom": path.resolve("./node_modules/react-dom"),
     },
 
     dedupe: [
