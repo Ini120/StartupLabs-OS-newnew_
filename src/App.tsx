@@ -8,10 +8,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 
+// ✅ FIX: Clerk imports added
+import { SignIn, SignUp } from "@clerk/clerk-react";
+
 // Lazy load public pages
 const Landing = lazy(() => import("@/pages/Landing"));
-const SignIn = lazy(() => import("@/pages/auth/SignIn"));
-const SignUp = lazy(() => import("@/pages/auth/SignUp"));
 const SelectRole = lazy(() => import("@/pages/auth/SelectRole"));
 const CompleteProfile = lazy(() => import("@/pages/auth/CompleteProfile"));
 const AdminSignUp = lazy(() => import("@/pages/auth/AdminSignUp"));
@@ -37,19 +38,17 @@ const Profile = lazy(() => import("@/pages/Profile"));
 const People = lazy(() => import("@/pages/People"));
 const AdminInvites = lazy(() => import("@/pages/admin/AdminInvites"));
 
-// Loading fallback component
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
   </div>
 );
 
-// Optimized QueryClient configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
     },
@@ -70,23 +69,33 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Public landing page */}
+
+              {/* Public */}
               <Route path="/" element={<Landing />} />
 
-              {/* Public auth routes */}
-              <Route path="/sign-in/*" element={<SignIn />} />
-              <Route path="/sign-up/*" element={<SignUp />} />
+              {/* ✅ FIXED CLERK ROUTES */}
+              <Route
+                path="/sign-in/*"
+                element={<SignIn routing="path" path="/sign-in" />}
+              />
+              <Route
+                path="/sign-up/*"
+                element={<SignUp routing="path" path="/sign-up" />}
+              />
+
               <Route path="/admin-sign-up" element={<AdminSignUp />} />
               <Route path="/admin-sign-in" element={<AdminSignIn />} />
               <Route path="/accept-invite" element={<AcceptInvite />} />
               <Route path="/select-role" element={<SelectRole />} />
               <Route path="/complete-profile" element={<CompleteProfile />} />
 
-              {/* Protected routes */}
+              {/* Protected */}
               <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+
               <Route element={<ProtectedAppLayout />}>
                 <Route path="/dashboard" element={<DashboardRouter />} />
                 <Route path="/startup" element={<MyStartup />} />
@@ -106,10 +115,12 @@ const App = () => (
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/admin-invites" element={<AdminInvites />} />
               </Route>
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
+
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
